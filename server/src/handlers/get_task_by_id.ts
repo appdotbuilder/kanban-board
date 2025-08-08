@@ -1,8 +1,23 @@
+import { db } from '../db';
+import { tasksTable } from '../db/schema';
 import { type Task } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const getTaskById = async (id: number): Promise<Task | null> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching a single task by its ID from the database.
-    // It should return null if the task doesn't exist.
-    return null;
+  try {
+    const result = await db.select()
+      .from(tasksTable)
+      .where(eq(tasksTable.id, id))
+      .execute();
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    // Return the task (no numeric conversions needed for this schema)
+    return result[0];
+  } catch (error) {
+    console.error('Failed to get task by id:', error);
+    throw error;
+  }
 };

@@ -1,9 +1,32 @@
+import { db } from '../db';
+import { tasksTable } from '../db/schema';
 import { type ReorderTasksInput } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const reorderTasks = async (input: ReorderTasksInput): Promise<{ success: boolean }> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is reordering multiple tasks within the same column.
-    // This is useful for batch position updates when multiple tasks need to be repositioned.
-    // It should update the position field for all tasks in the input array.
-    return Promise.resolve({ success: true });
+  try {
+    // Use a transaction to ensure all position updates happen atomically
+    await db.transaction(async (tx) => {
+      // Update each task's position and verify it exists
+      for (const task of input.tasks) {
+        const result = await tx.update(tasksTable)
+          .set({
+            position: task.position,
+            updated_at: new Date()
+          })
+          .where(eq(tasksTable.id, task.id))
+          .execute();
+
+        // Check if any rows were affected (task exists)
+        if (result.rowCount === 0) {
+          throw new Error(`Task with id ${task.id} not found`);
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Task reordering failed:', error);
+    throw error;
+  }
 };
